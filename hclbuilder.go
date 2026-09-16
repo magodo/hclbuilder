@@ -25,7 +25,7 @@ type FileBuilder struct {
 	body bodyOperator
 }
 
-func NewBuilder() *FileBuilder {
+func New() *FileBuilder {
 	file := hclwrite.NewEmptyFile()
 	return &FileBuilder{
 		file: file,
@@ -33,6 +33,7 @@ func NewBuilder() *FileBuilder {
 	}
 }
 
+// SetContent sets the HCL content to the builder. It overwrites any existing content.
 func (b *FileBuilder) SetContent(src []byte) *FileBuilder {
 	file, diags := hclwrite.ParseConfig(src, "", hcl.InitialPos)
 	if diags.HasErrors() {
@@ -43,8 +44,14 @@ func (b *FileBuilder) SetContent(src []byte) *FileBuilder {
 	return b
 }
 
-func (b FileBuilder) Bytes() []byte {
-	return b.file.Bytes()
+// Build turns the HCL built so far into formatted bytes.
+func (b FileBuilder) Build() []byte {
+	return hclwrite.Format(b.file.Bytes())
+}
+
+// Clone returns a new cloned FileBuilder.
+func (b FileBuilder) Clone() *FileBuilder {
+	return New().SetContent(b.Build())
 }
 
 func (b *FileBuilder) At(addr string, f func(Builder)) *FileBuilder {

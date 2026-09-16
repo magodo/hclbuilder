@@ -7,7 +7,7 @@ import (
 )
 
 func Example_buildHCL() {
-	b := hclbuilder.NewBuilder()
+	b := hclbuilder.New()
 
 	b.SetContent([]byte(`
 string = "foo"
@@ -56,7 +56,7 @@ bar "a" "b" {
 				SetItem("b", []byte(`"hello"`))
 		}).
 		SetAttribute("bar", []byte(`"bar"`))
-	fmt.Println(string(b.Bytes()))
+	fmt.Println(string(b.Build()))
 	// Output:
 	// foo = "foo"
 	//

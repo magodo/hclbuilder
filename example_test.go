@@ -19,7 +19,15 @@ object = {
 foo {
   hello = "world"
 }
-empty {
+
+empty a {
+}
+empty a {
+  x = 1
+}
+empty2 {
+}
+empty2 {
 }
 
 bar "a" "b" {
@@ -40,7 +48,7 @@ bar "a" "b" {
 				RemoveAttribute("hello").
 				SetAttribute("q", []byte("1")).
 				SetAttribute("p", []byte(`"abc"`)).
-				AppendNewBlock("bar", []string{"baz"}, func(b *hclbuilder.BlockBuilder) {
+				AppendNewBlock("bar", []string{"baz", "0"}, func(b *hclbuilder.BlockBuilder) {
 					b.
 						SetAttribute("z", []byte("1")).
 						AppendBlock([]byte(`x y {
@@ -49,7 +57,8 @@ bar "a" "b" {
 						`))
 				})
 		}).
-		RemoveBlocks("empty", nil, nil).
+		RemoveBlocks("empty", []string{"a"}, []int{0}).
+		RemoveBlocks("empty2", nil, nil).
 		At("[bar.a.b].[baz].object.nest", func(b hclbuilder.NodeBuilder) {
 			b.AsObject().
 				SetItem("a", []byte("2")).
@@ -63,12 +72,16 @@ bar "a" "b" {
 	// foo {
 	//   q = 1
 	//   p = "abc"
-	//   bar "baz" {
+	//   bar "baz" "0" {
 	//     z = 1
 	//     x y {
 	//       foo = [1, 2, 3]
 	//     }
 	//   }
+	// }
+	//
+	// empty a {
+	//   x = 1
 	// }
 	//
 	// bar "a" "b" {

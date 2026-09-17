@@ -27,8 +27,13 @@ type Builder struct {
 	ef ErrorFunc
 }
 
+// New creates a Builder with the input content.
+// Any build operation that failed will cause a panic by default, which can be
+// changed by setting a custom error function via WithErrorFunc option.
 func New(src []byte, opts ...Option) *Builder {
-	b := &Builder{}
+	b := &Builder{
+		ef: func(err error) { panic(err.Error()) },
+	}
 	for _, opt := range opts {
 		opt(b)
 	}

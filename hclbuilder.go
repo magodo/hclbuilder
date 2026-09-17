@@ -17,7 +17,7 @@ type Node interface {
 type NodeBuilder interface {
 	AsBlock() *BlockBuilder
 	AsObject() *ObjectBuilder
-	// TODO: Add AsTuple when TupleConsExpr is available
+	AsTuple() *TupleBuilder
 }
 
 type Builder struct {
@@ -210,6 +210,10 @@ func (b *BlockBuilder) AsObject() *ObjectBuilder {
 	return nil
 }
 
+func (b *BlockBuilder) AsTuple() *TupleBuilder {
+	return nil
+}
+
 type ObjectBuilder struct {
 	obj *hclwrite.ObjectConsExpr
 
@@ -251,6 +255,34 @@ func (b *ObjectBuilder) AsBlock() *BlockBuilder {
 
 func (b *ObjectBuilder) AsObject() *ObjectBuilder {
 	return b
+}
+
+func (b *ObjectBuilder) AsTuple() *TupleBuilder {
+	return nil
+}
+
+type TupleBuilder struct {
+	tuple *hclwrite.TupleConsExpr
+
+	ef ErrorFunc
+}
+
+func NewTupleBuilder(tuple *hclwrite.TupleConsExpr, ef ErrorFunc) *TupleBuilder {
+	return &TupleBuilder{tuple: tuple, ef: ef}
+}
+
+var _ NodeBuilder = &TupleBuilder{}
+
+func (t *TupleBuilder) AsBlock() *BlockBuilder {
+	return nil
+}
+
+func (t *TupleBuilder) AsObject() *ObjectBuilder {
+	return nil
+}
+
+func (t *TupleBuilder) AsTuple() *TupleBuilder {
+	return t
 }
 
 type bodyOperator struct {
@@ -338,12 +370,13 @@ func atAddress(start Node, address string, ef ErrorFunc) (NodeBuilder, error) {
 		}
 	}
 
-	// TODO: Support TupleBuilder
 	switch node := node.(type) {
 	case *hclwrite.Block:
 		return NewBlockBuilder(node, ef), nil
 	case *hclwrite.ObjectConsExpr:
 		return NewObjectBuilder(node, ef), nil
+	case *hclwrite.TupleConsExpr:
+		return NewTupleBuilder(node, ef), nil
 	default:
 		return nil, fmt.Errorf("unexpected node type %T", node)
 	}
@@ -359,7 +392,7 @@ func atStep(node Node, step Step) (Node, error) {
 		case *hclwrite.Block:
 			body = node.Body()
 		default:
-			return nil, fmt.Errorf("invalid starting node (%T) for step %q", node, step)
+			return nil, fmt.Errorf("invalid starting node (%T) for block step %q", node, step)
 		}
 
 		n := 0
@@ -398,13 +431,18 @@ func atStep(node Node, step Step) (Node, error) {
 			}
 			return underlyingExpr(item.ValueObj().Expr())
 		default:
-			return nil, fmt.Errorf("invalid starting node (%T) for step %q", node, step)
+			return nil, fmt.Errorf("invalid starting node (%T) for key step %q", node, step)
 		}
 	case IndexStep:
-		// TODO: add support for TupleConsExpr once available
 		switch node := node.(type) {
+		case *hclwrite.TupleConsExpr:
+			items := node.Items()
+			if step.Idx >= len(items) {
+				return nil, fmt.Errorf("invalid index (%d) for step %q (len=%d)", step.Idx, step, len(items))
+			}
+			return underlyingExpr(items[step.Idx])
 		default:
-			return nil, fmt.Errorf("invalid starting node (%T) for step %q", node, step)
+			return nil, fmt.Errorf("invalid starting node (%T) for index step %q", node, step)
 		}
 	default:
 		panic("unreachable")
@@ -412,12 +450,13 @@ func atStep(node Node, step Step) (Node, error) {
 }
 
 func underlyingExpr(expr *hclwrite.Expression) (Node, error) {
-	// TODO: Add support for other expressions once available (incl. TupleConsExpr)
 	switch {
 	case expr.AsObjectConsExpr() != nil:
 		return expr.AsObjectConsExpr(), nil
 	case expr.AsQuotedLiteral() != nil:
 		return expr.AsQuotedLiteral(), nil
+	case expr.AsTupleConsExpr() != nil:
+		return expr.AsTupleConsExpr(), nil
 	default:
 		return nil, fmt.Errorf("unsupported expression type %s", spew.Sdump(expr))
 	}

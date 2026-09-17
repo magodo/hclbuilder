@@ -12,8 +12,6 @@ func Example_buildHCL() {
 string = "foo"
 object = {
   bar = 5
-  baz = true
-  foo = "foo"
 }
 
 foo {

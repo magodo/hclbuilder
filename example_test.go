@@ -47,7 +47,7 @@ bar "a" "b" {
 		At("[foo]", func(b hclbuilder.NodeBuilder) {
 			b.AsBlock().
 				RemoveAttribute("hello").
-				SetAttribute("q", []byte("1")).
+				SetAttribute("q", []byte(`{foo="bar"}`)).
 				SetAttribute("p", []byte(`"abc"`)).
 				AppendNewBlock("bar", []string{"baz", "0"}, func(b *hclbuilder.BlockBuilder) {
 					b.
@@ -72,7 +72,7 @@ bar "a" "b" {
 	// foo = "foo"
 	//
 	// foo {
-	//   q = 1
+	//   q = { foo = "bar" }
 	//   p = "abc"
 	//   bar "baz" "0" {
 	//     z = 1

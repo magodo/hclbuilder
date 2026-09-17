@@ -60,6 +60,11 @@ func (b Builder) Build() []byte {
 	return hclwrite.Format(b.file.Bytes())
 }
 
+// BuildString is similar to Build, but returns string.
+func (b Builder) BuildString() string {
+	return string(b.Build())
+}
+
 // Clone returns a new cloned FileBuilder.
 func (b Builder) Clone() *Builder {
 	bb := New(b.Build())

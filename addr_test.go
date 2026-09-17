@@ -46,6 +46,24 @@ func TestParseAddress(t *testing.T) {
 			},
 		},
 		{
+			addr: `[a."0"]`,
+			expect: Address{
+				BlockStep{Type: "a", Labels: []string{"0"}},
+			},
+		},
+		{
+			addr: `[a.0.1.2]`,
+			expect: Address{
+				BlockStep{Type: "a", Labels: []string{"0", "1"}, Idx: new(2)},
+			},
+		},
+		{
+			addr: `[a.0.1."2"]`,
+			expect: Address{
+				BlockStep{Type: "a", Labels: []string{"0", "1", "2"}},
+			},
+		},
+		{
 			addr: "[a.b]",
 			expect: Address{
 				BlockStep{Type: "a", Labels: []string{"b"}},

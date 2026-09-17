@@ -38,10 +38,19 @@ type BlockStep struct {
 
 func (BlockStep) isStep() {}
 
+// String returns the string representation of the BlockStep.
+// It will not quote any label unless it is the last segment and is a number.
 func (step BlockStep) String() string {
 	segs := append([]string{step.Type}, step.Labels...)
 	if step.Idx != nil {
 		segs = append(segs, strconv.Itoa(*step.Idx))
+	} else {
+		if len(step.Labels) > 0 {
+			last := step.Labels[len(step.Labels)-1]
+			if _, err := strconv.Atoi(last); err == nil {
+				segs[len(segs)-1] = strconv.Quote(last)
+			}
+		}
 	}
 	return fmt.Sprintf("%s%s%s", string(BlockOpen), strings.Join(segs, string(StepSep)), string(BlockClose))
 }
@@ -69,15 +78,16 @@ func (step IndexStep) String() string {
 // ParseAddress parses a string into an Address.
 // The grammer of the address is:
 //
-//			Address -> Step(.Step)*
+//		Address -> Step(.Step)*
 //
-//		 Step ->
-//				BlockStep |
-//				Identifier |
-//				Number
+//	 Step ->
+//		BlockStep |
+//		Identifier |
+//		Number
 //
-//		 BlockStep -> "[" BlockType ("." BlockLabel)* ("." BlockIndex)?  "]"
+//	  BlockStep -> "[" BlockType ("." BlockLabel)* ("." BlockIndex)?  "]"
 //
+//	  BlockLabel can be quoted by `"` (e.g. to represent a number-like string).
 //	  The BlockStep must go before any other step.
 //
 // For now, we use a lex-less implementation.
@@ -163,11 +173,16 @@ func parseStepBlock(input string) (BlockStep, error) {
 	}
 	if len(segs) > 1 {
 		for _, seg := range segs[1 : len(segs)-1] {
+			if v, err := strconv.Unquote(seg); err == nil {
+				seg = v
+			}
 			step.Labels = append(step.Labels, seg)
 		}
 
 		last := segs[len(segs)-1]
-		if n, err := strconv.Atoi(last); err == nil {
+		if v, err := strconv.Unquote(last); err == nil {
+			step.Labels = append(step.Labels, v)
+		} else if n, err := strconv.Atoi(last); err == nil {
 			step.Idx = &n
 		} else {
 			step.Labels = append(step.Labels, last)

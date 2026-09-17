@@ -453,10 +453,10 @@ func underlyingExpr(expr *hclwrite.Expression) (Node, error) {
 	switch {
 	case expr.AsObjectConsExpr() != nil:
 		return expr.AsObjectConsExpr(), nil
-	case expr.AsQuotedLiteral() != nil:
-		return expr.AsQuotedLiteral(), nil
 	case expr.AsTupleConsExpr() != nil:
 		return expr.AsTupleConsExpr(), nil
+	case len(expr.AsQuotedLiteral()) != 0:
+		return expr.AsQuotedLiteral(), nil
 	default:
 		return nil, fmt.Errorf("unsupported expression type %s", spew.Sdump(expr))
 	}

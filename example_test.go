@@ -14,6 +14,15 @@ object = {
   bar = 5
 }
 
+objects = [
+  {
+    x = 1
+  },
+  {
+    y = 1
+  }
+]
+
 foo {
   hello = "world"
 }
@@ -42,6 +51,10 @@ bar "a" "b" {
 	)
 	b.RenameAttribute("string", "foo").
 		RemoveAttribute("object").
+		At("objects.1", func(b hclbuilder.NodeBuilder) {
+			b.AsObject().
+				SetItem("y", "2")
+		}).
 		At("[foo]", func(b hclbuilder.NodeBuilder) {
 			b.AsBlock().
 				RemoveAttribute("hello").
@@ -68,6 +81,15 @@ bar "a" "b" {
 	fmt.Println(string(b.Build()))
 	// Output:
 	// foo = "foo"
+	//
+	// objects = [
+	//   {
+	//     x = 1
+	//   },
+	//   {
+	//     y = 2
+	//   }
+	// ]
 	//
 	// foo {
 	//   q = { foo = "bar" }

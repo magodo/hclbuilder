@@ -235,6 +235,11 @@ func (b *ObjectBuilder) SetItem(key string, src []byte) *ObjectBuilder {
 	return b
 }
 
+func (b *ObjectBuilder) RemoveItem(key string) *ObjectBuilder {
+	onBool(b.ef, b.obj.RemoveItem(key), fmt.Sprintf("RemoveItem for %s failed", key))
+	return b
+}
+
 func (b *ObjectBuilder) AsBlock() *BlockBuilder {
 	return nil
 }

@@ -35,6 +35,7 @@ bar "a" "b" {
 	  object = {
 		  nest = {
 			  a = 1
+			  x = 1
 		  }
 	  }
   }
@@ -62,7 +63,8 @@ bar "a" "b" {
 		At("[bar.a.b].[baz].object.nest", func(b hclbuilder.NodeBuilder) {
 			b.AsObject().
 				SetItem("a", []byte("2")).
-				SetItem("b", []byte(`"hello"`))
+				SetItem("b", []byte(`"hello"`)).
+				RemoveItem("x")
 		}).
 		SetAttribute("bar", []byte(`"bar"`))
 	fmt.Println(string(b.Build()))

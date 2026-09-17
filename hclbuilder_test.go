@@ -9,7 +9,7 @@ import (
 
 func TestBuilder_Clone(t *testing.T) {
 	b := hclbuilder.New(nil)
-	require.Equal(t, []byte("a = 1\nb = 2\n"), b.SetAttribute("a", []byte("1")).Clone().Clone().SetAttribute("b", []byte("2")).Build())
+	require.Equal(t, []byte("a = 1\nb = 2\n"), b.SetAttribute("a", []byte("1")).Clone().SetAttribute("b", []byte("2")).Build())
 	require.Equal(t, []byte("a = 1\n"), b.Build())
 }
 

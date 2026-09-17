@@ -22,3 +22,10 @@ func onErr(f ErrorFunc, err error) bool {
 	}
 	return err != nil
 }
+
+func onBool(f ErrorFunc, b bool, msg string) bool {
+	if !b && f != nil {
+		f(errors.New(msg))
+	}
+	return b
+}

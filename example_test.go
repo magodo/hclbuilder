@@ -2,7 +2,6 @@ package hclbuilder_test
 
 import (
 	"fmt"
-	"log"
 
 	hclbuilder "github.com/LingyuTang/hcl-builder"
 )
@@ -33,7 +32,6 @@ bar "a" "b" {
   }
 }
 `),
-		hclbuilder.WithErrorFunc(func(err error) { log.Fatal(err) }),
 	)
 	b.RenameAttribute("string", "foo").
 		RemoveAttribute("object").

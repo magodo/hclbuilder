@@ -87,12 +87,12 @@ func (b *Builder) SetAttribute(name string, src []byte) *Builder {
 }
 
 func (b *Builder) RenameAttribute(fromName, toName string) *Builder {
-	b.body.RenameAttribute(fromName, toName)
+	onBool(b.ef, b.body.RenameAttribute(fromName, toName), fmt.Sprintf("RenameAttribute for %s failed", fromName))
 	return b
 }
 
 func (b *Builder) RemoveAttribute(name string) *Builder {
-	b.body.RemoveAttribute(name)
+	onBool(b.ef, b.body.RemoveAttribute(name), fmt.Sprintf("RemoveAttribute for %s failed", name))
 	return b
 }
 
@@ -114,7 +114,7 @@ func (b *Builder) AppendNewBlock(typeName string, labels []string, f func(*Block
 // If indicies is not nil, only the blocks under the specified indicies are removed.
 // Otherwise, all matching blocks are removed.
 func (b *Builder) RemoveBlocks(typeName string, labels []string, indicies []int) *Builder {
-	b.body.RemoveBlocks(typeName, labels, indicies)
+	onErr(b.ef, b.body.RemoveBlocks(typeName, labels, indicies))
 	return b
 }
 
@@ -161,12 +161,12 @@ func (b *BlockBuilder) SetAttribute(name string, src []byte) *BlockBuilder {
 }
 
 func (b *BlockBuilder) RenameAttribute(fromName, toName string) *BlockBuilder {
-	b.body.RenameAttribute(fromName, toName)
+	onBool(b.ef, b.body.RenameAttribute(fromName, toName), fmt.Sprintf("RenameAttribute for %s failed", fromName))
 	return b
 }
 
 func (b *BlockBuilder) RemoveAttribute(name string) *BlockBuilder {
-	b.body.RemoveAttribute(name)
+	onBool(b.ef, b.body.RemoveAttribute(name), fmt.Sprintf("RemoveAttribute for %s failed", name))
 	return b
 }
 
@@ -188,7 +188,7 @@ func (b *BlockBuilder) AppendNewBlock(typeName string, labels []string, f func(*
 // If indicies is not nil, only the blocks under the specified indicies are removed.
 // Otherwise, all matching blocks are removed.
 func (b *BlockBuilder) RemoveBlocks(typeName string, labels []string, indicies []int) *BlockBuilder {
-	b.body.RemoveBlocks(typeName, labels, indicies)
+	onErr(b.ef, b.body.RemoveBlocks(typeName, labels, indicies))
 	return b
 }
 
@@ -253,12 +253,12 @@ func (b bodyOperator) SetAttribute(name string, src []byte) hcl.Diagnostics {
 	return diags
 }
 
-func (b bodyOperator) RenameAttribute(fromName, toName string) {
-	b.body.RenameAttribute(fromName, toName)
+func (b bodyOperator) RenameAttribute(fromName, toName string) bool {
+	return b.body.RenameAttribute(fromName, toName)
 }
 
-func (b bodyOperator) RemoveAttribute(name string) {
-	b.body.RemoveAttribute(name)
+func (b bodyOperator) RemoveAttribute(name string) bool {
+	return b.body.RemoveAttribute(name) != nil
 }
 
 func (b bodyOperator) AppendBlock(src []byte) hcl.Diagnostics {
@@ -293,7 +293,7 @@ func (b bodyOperator) AppendNewBlock(typeName string, labels []string, f func(*B
 	f(NewBlockBuilder(innerBlk, b.ef))
 }
 
-func (b bodyOperator) RemoveBlocks(typeName string, labels []string, indicies []int) {
+func (b bodyOperator) RemoveBlocks(typeName string, labels []string, indicies []int) error {
 	idx := -1
 	for _, blk := range b.body.Blocks() {
 		if !(blk.Type() == typeName && slices.Equal(blk.Labels(), labels)) {
@@ -301,9 +301,12 @@ func (b bodyOperator) RemoveBlocks(typeName string, labels []string, indicies []
 		}
 		idx++
 		if indicies == nil || slices.Contains(indicies, idx) {
-			b.body.RemoveBlock(blk)
+			if !b.body.RemoveBlock(blk) {
+				return fmt.Errorf("RemoveBlock for %s failed", BlockStep{Type: typeName, Labels: labels})
+			}
 		}
 	}
+	return nil
 }
 
 func atAddress(start Node, address string, ef ErrorFunc) (NodeBuilder, error) {

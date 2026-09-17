@@ -1,4 +1,4 @@
-module github.com/LingyuTang/hcl-builder
+module github.com/magodo/hclbuilder
 
 go 1.26.5
 

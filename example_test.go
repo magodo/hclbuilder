@@ -3,7 +3,7 @@ package hclbuilder_test
 import (
 	"fmt"
 
-	hclbuilder "github.com/LingyuTang/hcl-builder"
+	"github.com/magodo/hclbuilder"
 )
 
 func Example_buildHCL() {

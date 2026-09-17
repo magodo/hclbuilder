@@ -3,7 +3,7 @@ package hclbuilder_test
 import (
 	"testing"
 
-	hclbuilder "github.com/LingyuTang/hcl-builder"
+	"github.com/magodo/hclbuilder"
 	"github.com/stretchr/testify/require"
 )
 

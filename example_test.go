@@ -2,14 +2,14 @@ package hclbuilder_test
 
 import (
 	"fmt"
+	"log"
 
 	hclbuilder "github.com/LingyuTang/hcl-builder"
 )
 
 func Example_buildHCL() {
-	b := hclbuilder.New()
-
-	b.SetContent([]byte(`
+	b := hclbuilder.New(
+		[]byte(`
 string = "foo"
 object = {
   bar = 5
@@ -32,10 +32,12 @@ bar "a" "b" {
 	  }
   }
 }
-`)).
-		RenameAttribute("string", "foo").
+`),
+		hclbuilder.WithErrorFunc(func(err error) { log.Fatal(err) }),
+	)
+	b.RenameAttribute("string", "foo").
 		RemoveAttribute("object").
-		At("[foo]", func(b hclbuilder.Builder) {
+		At("[foo]", func(b hclbuilder.NodeBuilder) {
 			b.AsBlock().
 				RemoveAttribute("hello").
 				SetAttribute("q", []byte("1")).
@@ -50,7 +52,7 @@ bar "a" "b" {
 				})
 		}).
 		RemoveBlocks("empty", nil, nil).
-		At("[bar.a.b].[baz].object.nest", func(b hclbuilder.Builder) {
+		At("[bar.a.b].[baz].object.nest", func(b hclbuilder.NodeBuilder) {
 			b.AsObject().
 				SetItem("a", []byte("2")).
 				SetItem("b", []byte(`"hello"`))

@@ -54,6 +54,16 @@ func (b FileBuilder) Clone() *FileBuilder {
 	return New().SetContent(b.Build())
 }
 
+// At goes down to the addr and apply the build function with the builder at that level.
+// The build function shall convert the Builder to a concrete builder via the AsXXX method.
+//
+// The format of the addr is dot separated steps, where each step can be one of the below:
+// - block step: "[" blk_type(.blk_label1.blk_label2,...)(.index)? "]" (index defaults to 0)
+// - key step: An identifier represents the attribute name or object's key.
+// - index step: A number represents the index of a tuple.
+//
+// Example: With addr [resource.azurerm_resource_group.test].tags, a ObjectBuilder is called
+// with the build function.
 func (b *FileBuilder) At(addr string, f func(Builder)) *FileBuilder {
 	bb, err := atAddress(b.file, addr)
 	if err != nil {

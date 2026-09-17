@@ -69,14 +69,16 @@ func (step IndexStep) String() string {
 // ParseAddress parses a string into an Address.
 // The grammer of the address is:
 //
-//		Address -> Step(.Step)*
+//			Address -> Step(.Step)*
 //
-//	 Step ->
-//			BlockStep |
-//			Identifier |
-//			Number
+//		 Step ->
+//				BlockStep |
+//				Identifier |
+//				Number
 //
-//	 BlockStep -> "[" BlockType ("." BlockLabel)* ("." BlockIndex)?  "]"
+//		 BlockStep -> "[" BlockType ("." BlockLabel)* ("." BlockIndex)?  "]"
+//
+//	  The BlockStep must go before any other step.
 //
 // For now, we use a lex-less implementation.
 func ParseAddress(input string) (Address, error) {

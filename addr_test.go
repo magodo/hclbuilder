@@ -73,6 +73,10 @@ func TestParseAddress(t *testing.T) {
 			error: true,
 		},
 		{
+			addr:  "[a",
+			error: true,
+		},
+		{
 			addr:  "[.]",
 			error: true,
 		},

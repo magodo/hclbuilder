@@ -91,8 +91,8 @@ func (b *Builder) At(addr string, f func(NodeBuilder)) *Builder {
 	return b
 }
 
-func (b *Builder) SetAttribute(name string, src []byte) *Builder {
-	onDiags(b.ef, b.body.SetAttribute(name, src))
+func (b *Builder) SetAttribute(name string, content string) *Builder {
+	onDiags(b.ef, b.body.SetAttribute(name, []byte(content)))
 	return b
 }
 
@@ -107,8 +107,8 @@ func (b *Builder) RemoveAttribute(name string) *Builder {
 }
 
 // AppendBlock appends a block to the end of the body in verbatim.
-func (b *Builder) AppendBlock(src []byte) *Builder {
-	onDiags(b.ef, b.body.AppendBlock(src))
+func (b *Builder) AppendBlock(content string) *Builder {
+	onDiags(b.ef, b.body.AppendBlock([]byte(content)))
 	return b
 }
 
@@ -165,8 +165,8 @@ func (b *BlockBuilder) At(addr string, f func(NodeBuilder)) *BlockBuilder {
 	return b
 }
 
-func (b *BlockBuilder) SetAttribute(name string, src []byte) *BlockBuilder {
-	onDiags(b.ef, b.body.SetAttribute(name, src))
+func (b *BlockBuilder) SetAttribute(name string, content string) *BlockBuilder {
+	onDiags(b.ef, b.body.SetAttribute(name, []byte(content)))
 	return b
 }
 
@@ -181,8 +181,8 @@ func (b *BlockBuilder) RemoveAttribute(name string) *BlockBuilder {
 }
 
 // AppendBlock appends a block to the end of the body in verbatim.
-func (b *BlockBuilder) AppendBlock(src []byte) *BlockBuilder {
-	onDiags(b.ef, b.body.AppendBlock(src))
+func (b *BlockBuilder) AppendBlock(content string) *BlockBuilder {
+	onDiags(b.ef, b.body.AppendBlock([]byte(content)))
 	return b
 }
 
@@ -231,8 +231,8 @@ func (b *ObjectBuilder) At(addr string, f func(NodeBuilder)) *ObjectBuilder {
 	return b
 }
 
-func (b *ObjectBuilder) SetItem(key string, src []byte) *ObjectBuilder {
-	expr, diags := hclwrite.ParseExpression(src, "", hcl.InitialPos)
+func (b *ObjectBuilder) SetItem(key string, content string) *ObjectBuilder {
+	expr, diags := hclwrite.ParseExpression([]byte(content), "", hcl.InitialPos)
 	if onDiags(b.ef, diags) {
 		return b
 	}

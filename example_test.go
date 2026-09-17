@@ -47,26 +47,26 @@ bar "a" "b" {
 		At("[foo]", func(b hclbuilder.NodeBuilder) {
 			b.AsBlock().
 				RemoveAttribute("hello").
-				SetAttribute("q", []byte(`{foo="bar"}`)).
-				SetAttribute("p", []byte(`"abc"`)).
+				SetAttribute("q", `{foo="bar"}`).
+				SetAttribute("p", `"abc"`).
 				AppendNewBlock("bar", []string{"baz", "0"}, func(b *hclbuilder.BlockBuilder) {
 					b.
-						SetAttribute("z", []byte("1")).
-						AppendBlock([]byte(`x y {
+						SetAttribute("z", "1").
+						AppendBlock(`x y {
 							foo = [1, 2, 3]
 						}
-						`))
+						`)
 				})
 		}).
 		RemoveBlocks("empty", []string{"a"}, []int{0}).
 		RemoveBlocks("empty2", nil, nil).
 		At("[bar.a.b].[baz].object.nest", func(b hclbuilder.NodeBuilder) {
 			b.AsObject().
-				SetItem("a", []byte("2")).
-				SetItem("b", []byte(`"hello"`)).
+				SetItem("a", "2").
+				SetItem("b", `"hello"`).
 				RemoveItem("x")
 		}).
-		SetAttribute("bar", []byte(`"bar"`))
+		SetAttribute("bar", `"bar"`)
 	fmt.Println(string(b.Build()))
 	// Output:
 	// foo = "foo"

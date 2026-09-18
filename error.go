@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 )
 
-// ErrorFunc is called with the error received during the build.
+// ErrorFunc is called when an error is encountered during the build.
 type ErrorFunc func(error)
 
 func onDiags(f ErrorFunc, diags hcl.Diagnostics) bool {

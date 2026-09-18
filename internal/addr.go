@@ -1,4 +1,4 @@
-package hclbuilder
+package internal
 
 import (
 	"bufio"
@@ -10,13 +10,18 @@ import (
 )
 
 const (
-	BlockOpen  = '['
+	// BlockOpen begins a block step in an address.
+	BlockOpen = '['
+	// BlockClose ends a block step in an address.
 	BlockClose = ']'
-	StepSep    = '.'
+	// StepSep separates address steps.
+	StepSep = '.'
 )
 
+// Address is a sequence of steps that identifies a node in an HCL document.
 type Address []Step
 
+// String returns the string representation of the Address.
 func (addr Address) String() string {
 	var segs []string
 	for _, step := range addr {
@@ -25,15 +30,20 @@ func (addr Address) String() string {
 	return strings.Join(segs, string(StepSep))
 }
 
+// Step is a component of an Address.
 type Step interface {
 	isStep()
 	String() string
 }
 
+// BlockStep identifies a block by type, labels, and an optional index.
 type BlockStep struct {
-	Type   string
+	// Type is the block type.
+	Type string
+	// Labels are the block labels.
 	Labels []string
-	Idx    *int
+	// Idx is the zero-based index of a matching block.
+	Idx *int
 }
 
 func (BlockStep) isStep() {}
@@ -55,28 +65,34 @@ func (step BlockStep) String() string {
 	return fmt.Sprintf("%s%s%s", string(BlockOpen), strings.Join(segs, string(StepSep)), string(BlockClose))
 }
 
+// KeyStep identifies an attribute or object item by key.
 type KeyStep struct {
+	// Key is the attribute or object item key.
 	Key string
 }
 
 func (KeyStep) isStep() {}
 
+// String returns the string representation of the KeyStep.
 func (step KeyStep) String() string {
 	return step.Key
 }
 
+// IndexStep identifies an item in a tuple by index.
 type IndexStep struct {
+	// Idx is the zero-based tuple index.
 	Idx int
 }
 
 func (IndexStep) isStep() {}
 
+// String returns the string representation of the IndexStep.
 func (step IndexStep) String() string {
 	return strconv.Itoa(step.Idx)
 }
 
 // ParseAddress parses a string into an Address.
-// The grammer of the address is:
+// The grammar of the address is:
 //
 //		Address -> Step(.Step)*
 //

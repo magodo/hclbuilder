@@ -1,4 +1,4 @@
-package hclbuilder
+package internal
 
 import (
 	"testing"

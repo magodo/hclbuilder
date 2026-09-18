@@ -7,20 +7,34 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
+	"github.com/magodo/hclbuilder/internal"
 )
 
 // Node is an interface implemented by all the hclwrite nodes.
 type Node interface {
-	BuildTokens(to hclwrite.Tokens) hclwrite.Tokens
+	// token sequence.
+	BuildTokens(dst hclwrite.Tokens) hclwrite.Tokens
 }
 
+// Builder provides access to the builder for an HCL node.
+// Exactly one of AsFile, AsBlock, AsObject, and AsTuple returns non-nil,
+// corresponding to the node's kind.
 type Builder interface {
+	// AsFile returns a FileBuilder when the builder represents a file, or nil
+	// otherwise.
 	AsFile() *FileBuilder
+	// AsBlock returns a BlockBuilder when the builder represents a block, or
+	// nil otherwise.
 	AsBlock() *BlockBuilder
+	// AsObject returns an ObjectBuilder when the builder represents an object,
+	// or nil otherwise.
 	AsObject() *ObjectBuilder
+	// AsTuple returns a TupleBuilder when the builder represents a tuple, or
+	// nil otherwise.
 	AsTuple() *TupleBuilder
 }
 
+// FileBuilder builds and modifies an HCL file.
 type FileBuilder struct {
 	file *hclwrite.File
 	body bodyOperator
@@ -83,16 +97,7 @@ func (b FileBuilder) Clone() *FileBuilder {
 	return bb
 }
 
-// At goes down to the addr and apply the build function with the builder at that level.
-// The build function shall convert the Builder to a concrete builder via the AsXXX method.
-//
-// The format of the addr is dot separated steps, where each step can be one of the below:
-// - block step: "[" blk_type(.blk_label1.blk_label2,...)(.index)? "]" (index defaults to 0)
-// - key step: An identifier represents the attribute name or object's key.
-// - index step: A number represents the index of a tuple.
-//
-// Example: With addr [resource.azurerm_resource_group.test].tags, a ObjectBuilder is called
-// with the build function.
+// At calls f with the builder for the node at addr.
 func (b *FileBuilder) At(addr string, f func(Builder)) *FileBuilder {
 	bb, err := atAddress(b.file, addr, b.ef)
 	if onErr(b.ef, err) {
@@ -102,16 +107,19 @@ func (b *FileBuilder) At(addr string, f func(Builder)) *FileBuilder {
 	return b
 }
 
+// SetAttribute sets name to the HCL expression in content.
 func (b *FileBuilder) SetAttribute(name string, content string) *FileBuilder {
 	onDiags(b.ef, b.body.SetAttribute(name, []byte(content)))
 	return b
 }
 
+// RenameAttribute renames an attribute from fromName to toName.
 func (b *FileBuilder) RenameAttribute(fromName, toName string) *FileBuilder {
 	onBool(b.ef, b.body.RenameAttribute(fromName, toName), fmt.Sprintf("RenameAttribute for %s failed", fromName))
 	return b
 }
 
+// RemoveAttribute removes the attribute named name.
 func (b *FileBuilder) RemoveAttribute(name string) *FileBuilder {
 	onBool(b.ef, b.body.RemoveAttribute(name), fmt.Sprintf("RemoveAttribute for %s failed", name))
 	return b
@@ -149,7 +157,7 @@ func (b *FileBuilder) SetAt(addr, content string) *FileBuilder {
 	}
 
 	// TODO: Support IndexStep once TupleConsExpr can set/insert item.
-	step, ok := last.(KeyStep)
+	step, ok := last.(internal.KeyStep)
 	if !ok {
 		onErr(b.ef, fmt.Errorf("cannot set %q: address is not pointing to an attribute or object", addr))
 		return b
@@ -197,7 +205,7 @@ func (b *FileBuilder) RemoveAt(addr string) *FileBuilder {
 
 	// TODO: Support IndexStep once TupleConsExpr can remove item.
 	switch step := last.(type) {
-	case KeyStep:
+	case internal.KeyStep:
 		switch {
 		case parentNode.AsFile() != nil:
 			parentNode.AsFile().RemoveAttribute(step.Key)
@@ -208,7 +216,7 @@ func (b *FileBuilder) RemoveAt(addr string) *FileBuilder {
 		default:
 			onErr(b.ef, fmt.Errorf("cannot remove %q: parent is not a file, block or object", addr))
 		}
-	case BlockStep:
+	case internal.BlockStep:
 		idx := []int{0}
 		if step.Idx != nil {
 			idx = []int{*step.Idx}
@@ -227,25 +235,29 @@ func (b *FileBuilder) RemoveAt(addr string) *FileBuilder {
 	return b
 }
 
+// AsBlock returns nil.
 func (b *FileBuilder) AsBlock() *BlockBuilder {
 	return nil
 }
 
+// AsFile returns the receiver.
 func (b *FileBuilder) AsFile() *FileBuilder {
 	return b
 }
 
+// AsObject returns nil.
 func (b *FileBuilder) AsObject() *ObjectBuilder {
 	return nil
 }
 
+// AsTuple returns nil.
 func (b *FileBuilder) AsTuple() *TupleBuilder {
 	return nil
 }
 
 // resolveParent resolves the parent node, with the last address step.
-func (b *FileBuilder) resolveParent(addr string) (parentNode Builder, last Step, err error) {
-	address, err := ParseAddress(addr)
+func (b *FileBuilder) resolveParent(addr string) (parentNode Builder, last internal.Step, err error) {
+	address, err := internal.ParseAddress(addr)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -257,6 +269,7 @@ func (b *FileBuilder) resolveParent(addr string) (parentNode Builder, last Step,
 	return parentNode, last, err
 }
 
+// BlockBuilder builds and modifies an HCL block.
 type BlockBuilder struct {
 	blk  *hclwrite.Block
 	body bodyOperator
@@ -275,16 +288,19 @@ func newBlockBuilder(blk *hclwrite.Block, ef ErrorFunc) *BlockBuilder {
 
 var _ Builder = &BlockBuilder{}
 
+// SetType sets the block type to typeName.
 func (b *BlockBuilder) SetType(typeName string) *BlockBuilder {
 	b.blk.SetType(typeName)
 	return b
 }
 
+// SetLabels sets the block labels to labels.
 func (b *BlockBuilder) SetLabels(labels []string) *BlockBuilder {
 	b.blk.SetLabels(labels)
 	return b
 }
 
+// At calls f with the builder for the node at addr.
 func (b *BlockBuilder) At(addr string, f func(Builder)) *BlockBuilder {
 	bb, err := atAddress(b.blk, addr, b.ef)
 	if onErr(b.ef, err) {
@@ -294,16 +310,19 @@ func (b *BlockBuilder) At(addr string, f func(Builder)) *BlockBuilder {
 	return b
 }
 
+// SetAttribute sets name to the HCL expression in content.
 func (b *BlockBuilder) SetAttribute(name string, content string) *BlockBuilder {
 	onDiags(b.ef, b.body.SetAttribute(name, []byte(content)))
 	return b
 }
 
+// RenameAttribute renames an attribute from fromName to toName.
 func (b *BlockBuilder) RenameAttribute(fromName, toName string) *BlockBuilder {
 	onBool(b.ef, b.body.RenameAttribute(fromName, toName), fmt.Sprintf("RenameAttribute for %s failed", fromName))
 	return b
 }
 
+// RemoveAttribute removes the attribute named name.
 func (b *BlockBuilder) RemoveAttribute(name string) *BlockBuilder {
 	onBool(b.ef, b.body.RemoveAttribute(name), fmt.Sprintf("RemoveAttribute for %s failed", name))
 	return b
@@ -331,22 +350,27 @@ func (b *BlockBuilder) RemoveBlocks(typeName string, labels []string, indicies [
 	return b
 }
 
+// AsBlock returns the receiver.
 func (b *BlockBuilder) AsBlock() *BlockBuilder {
 	return b
 }
 
+// AsFile returns nil.
 func (b *BlockBuilder) AsFile() *FileBuilder {
 	return nil
 }
 
+// AsObject returns nil.
 func (b *BlockBuilder) AsObject() *ObjectBuilder {
 	return nil
 }
 
+// AsTuple returns nil.
 func (b *BlockBuilder) AsTuple() *TupleBuilder {
 	return nil
 }
 
+// ObjectBuilder builds and modifies an HCL object constructor expression.
 type ObjectBuilder struct {
 	obj *hclwrite.ObjectConsExpr
 
@@ -359,6 +383,7 @@ func newObjectBuilder(obj *hclwrite.ObjectConsExpr, ef ErrorFunc) *ObjectBuilder
 
 var _ Builder = &ObjectBuilder{}
 
+// At calls f with the builder for the node at addr.
 func (b *ObjectBuilder) At(addr string, f func(Builder)) *ObjectBuilder {
 	bb, err := atAddress(b.obj, addr, b.ef)
 	if onErr(b.ef, err) {
@@ -368,6 +393,7 @@ func (b *ObjectBuilder) At(addr string, f func(Builder)) *ObjectBuilder {
 	return b
 }
 
+// SetItem sets key to the HCL expression in content.
 func (b *ObjectBuilder) SetItem(key string, content string) *ObjectBuilder {
 	expr, diags := hclwrite.ParseExpression([]byte(content), "", hcl.InitialPos)
 	if onDiags(b.ef, diags) {
@@ -377,27 +403,33 @@ func (b *ObjectBuilder) SetItem(key string, content string) *ObjectBuilder {
 	return b
 }
 
+// RemoveItem removes the item identified by key.
 func (b *ObjectBuilder) RemoveItem(key string) *ObjectBuilder {
 	onBool(b.ef, b.obj.RemoveItem(key), fmt.Sprintf("RemoveItem for %s failed", key))
 	return b
 }
 
+// AsBlock returns nil.
 func (b *ObjectBuilder) AsBlock() *BlockBuilder {
 	return nil
 }
 
+// AsFile returns nil.
 func (b *ObjectBuilder) AsFile() *FileBuilder {
 	return nil
 }
 
+// AsObject returns the receiver.
 func (b *ObjectBuilder) AsObject() *ObjectBuilder {
 	return b
 }
 
+// AsTuple returns nil.
 func (b *ObjectBuilder) AsTuple() *TupleBuilder {
 	return nil
 }
 
+// TupleBuilder represents an HCL tuple constructor expression.
 type TupleBuilder struct {
 	tuple *hclwrite.TupleConsExpr
 
@@ -410,18 +442,22 @@ func newTupleBuilder(tuple *hclwrite.TupleConsExpr, ef ErrorFunc) *TupleBuilder 
 
 var _ Builder = &TupleBuilder{}
 
+// AsBlock returns nil.
 func (t *TupleBuilder) AsBlock() *BlockBuilder {
 	return nil
 }
 
-func (b *TupleBuilder) AsFile() *FileBuilder {
+// AsFile returns nil.
+func (t *TupleBuilder) AsFile() *FileBuilder {
 	return nil
 }
 
+// AsObject returns nil.
 func (t *TupleBuilder) AsObject() *ObjectBuilder {
 	return nil
 }
 
+// AsTuple returns the receiver.
 func (t *TupleBuilder) AsTuple() *TupleBuilder {
 	return t
 }
@@ -497,7 +533,7 @@ func (b bodyOperator) RemoveBlocks(typeName string, labels []string, indicies []
 		idx++
 		if indicies == nil || slices.Contains(indicies, idx) {
 			if !b.body.RemoveBlock(blk) {
-				return fmt.Errorf("RemoveBlock for %s failed", BlockStep{Type: typeName, Labels: labels})
+				return fmt.Errorf("RemoveBlock for %s failed", internal.BlockStep{Type: typeName, Labels: labels})
 			}
 		}
 	}
@@ -505,7 +541,7 @@ func (b bodyOperator) RemoveBlocks(typeName string, labels []string, indicies []
 }
 
 func atAddress(start Node, address string, ef ErrorFunc) (Builder, error) {
-	addr, err := ParseAddress(address)
+	addr, err := internal.ParseAddress(address)
 	if err != nil {
 		return nil, err
 	}
@@ -532,9 +568,9 @@ func atAddress(start Node, address string, ef ErrorFunc) (Builder, error) {
 	}
 }
 
-func atStep(node Node, step Step) (Node, error) {
+func atStep(node Node, step internal.Step) (Node, error) {
 	switch step := step.(type) {
-	case BlockStep:
+	case internal.BlockStep:
 		var body *hclwrite.Body
 		switch node := node.(type) {
 		case *hclwrite.File:
@@ -560,7 +596,7 @@ func atStep(node Node, step Step) (Node, error) {
 			return blk, nil
 		}
 		return nil, fmt.Errorf("node not found at step %q", step)
-	case KeyStep:
+	case internal.KeyStep:
 		switch node := node.(type) {
 		case *hclwrite.File:
 			attr := node.Body().GetAttribute(step.Key)
@@ -583,7 +619,7 @@ func atStep(node Node, step Step) (Node, error) {
 		default:
 			return nil, fmt.Errorf("invalid starting node (%T) for key step %q", node, step)
 		}
-	case IndexStep:
+	case internal.IndexStep:
 		switch node := node.(type) {
 		case *hclwrite.TupleConsExpr:
 			items := node.Items()

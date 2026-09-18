@@ -22,4 +22,4 @@ require (
 	golang.org/x/tools v0.38.0 // indirect
 )
 
-replace github.com/hashicorp/hcl/v2 => ../hcl
+replace github.com/hashicorp/hcl/v2 => github.com/magodo/hcl/v2 v2.3.1-0.20260917081315-4c1d919f4ae1

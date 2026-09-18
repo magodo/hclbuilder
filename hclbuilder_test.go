@@ -7,6 +7,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestBuilder_FromEmptyFile(t *testing.T) {
+	b := hclbuilder.New(nil).
+		AppendBlock("blk1 {}").
+		AppendBlock(`blk2 {
+			foo = 1
+		}`).
+		SetAttribute("x", "1").
+		SetAttribute("obj", `{ y = "y"}`)
+	expect := `blk1 {}
+blk2 {
+  foo = 1
+}
+x   = 1
+obj = { y = "y" }
+`
+	require.Equal(t, b.BuildString(), expect)
+}
+
 func TestBuilder_Clone(t *testing.T) {
 	b := hclbuilder.New(nil)
 	require.Equal(t, "a = 1\nb = 2\n", b.SetAttribute("a", "1").Clone().SetAttribute("b", "2").BuildString())

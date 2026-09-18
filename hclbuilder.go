@@ -117,7 +117,7 @@ func (b *FileBuilder) RemoveAttribute(name string) *FileBuilder {
 	return b
 }
 
-// AppendBlock appends a block to the end of the body in verbatim.
+// AppendBlock appends a block to the end of the body.
 func (b *FileBuilder) AppendBlock(content string) *FileBuilder {
 	onDiags(b.ef, b.body.AppendBlock([]byte(content)))
 	return b
@@ -207,7 +207,7 @@ func (b *BlockBuilder) RemoveAttribute(name string) *BlockBuilder {
 	return b
 }
 
-// AppendBlock appends a block to the end of the body in verbatim.
+// AppendBlock appends a block to the end of the body.
 func (b *BlockBuilder) AppendBlock(content string) *BlockBuilder {
 	onDiags(b.ef, b.body.AppendBlock([]byte(content)))
 	return b
@@ -347,7 +347,14 @@ func (b bodyOperator) RemoveAttribute(name string) bool {
 	return b.body.RemoveAttribute(name) != nil
 }
 
+// AppendBlock build construct a block from the src and append it to the body.
 func (b bodyOperator) AppendBlock(src []byte) hcl.Diagnostics {
+	// Ensure the src is always ended with a newline, which avoids
+	// the constructed block is followed by the next node at the same line.
+	// This aligns with how AppendNewBlock does in its inner `.init()` process.
+	// Multiple newlines seem to be normalized to one by hclwrite write/fmt process.
+	src = append(src, '\n')
+
 	f, diags := hclwrite.ParseConfig(src, "", hcl.InitialPos)
 	if diags.HasErrors() {
 		return diags

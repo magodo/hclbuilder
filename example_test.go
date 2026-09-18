@@ -65,8 +65,7 @@ bar "a" "b" {
 						SetAttribute("z", "1").
 						AppendBlock(`x y {
 							foo = [1, 2, 3]
-						}
-						`)
+						}`)
 				})
 		}).
 		RemoveBlocks("empty", []string{"a"}, []int{0}).

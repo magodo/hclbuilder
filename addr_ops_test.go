@@ -7,10 +7,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// requireHCL normalizes expected through the same parse+format pipeline as the
+// requireHCLEqual normalizes expected through the same parse+format pipeline as the
 // actual value, so leading-whitespace differences (tabs vs spaces) in the raw
 // fixture don't affect the comparison.
-func requireHCL(t *testing.T, expected, actual string) {
+func requireHCLEqual(t *testing.T, expected, actual string) {
 	t.Helper()
 	require.Equal(t, hclbuilder.New([]byte(expected)).BuildString(), actual)
 }
@@ -78,7 +78,7 @@ type_b "boo" "1" {
 }
 added_root = "added root"
 `
-		requireHCL(t, expected, b.BuildString())
+		requireHCLEqual(t, expected, b.BuildString())
 	})
 
 	t.Run("final step is a block", func(t *testing.T) {
@@ -145,7 +145,7 @@ root {
 }
 sibling {}
 `
-		requireHCL(t, expected, b.BuildString())
+		requireHCLEqual(t, expected, b.BuildString())
 	})
 
 	t.Run("not a file or block body", func(t *testing.T) {
@@ -214,7 +214,7 @@ type_b "label1" {
 		b.RemoveAt("[type_b.label1].object2")
 		b.RemoveAt("[type_b.label1].[nested].value")
 		b.RemoveAt("[type_b.label1].[sub.1]")
-		requireHCL(t, expected, b.BuildString())
+		requireHCLEqual(t, expected, b.BuildString())
 	})
 
 	t.Run("unsupported final step", func(t *testing.T) {

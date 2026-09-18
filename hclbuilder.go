@@ -149,31 +149,42 @@ func (b *FileBuilder) SetAt(addr, content string) *FileBuilder {
 	}
 
 	// TODO: Support IndexStep once TupleConsExpr can set/insert item.
-	switch step := last.(type) {
-	case KeyStep:
-		switch {
-		case parentNode.AsFile() != nil:
-			parentNode.AsFile().SetAttribute(step.Key, content)
-		case parentNode.AsBlock() != nil:
-			parentNode.AsBlock().SetAttribute(step.Key, content)
-		case parentNode.AsObject() != nil:
-			parentNode.AsObject().SetItem(step.Key, content)
-		default:
-			onErr(b.ef, fmt.Errorf("cannot set %q: parent is not a block or object body", addr))
-		}
-	case BlockStep:
-		switch {
-		case parentNode.AsFile() != nil:
-			parentNode.AsFile().AppendBlock(content)
-		case parentNode.AsBlock() != nil:
-			parentNode.AsBlock().AppendBlock(content)
-		default:
-			onErr(b.ef, fmt.Errorf("cannot set a block at %q: not a block body", addr))
-		}
-	default:
-		onErr(b.ef, fmt.Errorf("unsupported final step %q", last))
+	step, ok := last.(KeyStep)
+	if !ok {
+		onErr(b.ef, fmt.Errorf("cannot set %q: address is not pointing to an attribute or object", addr))
+		return b
 	}
 
+	switch {
+	case parentNode.AsFile() != nil:
+		parentNode.AsFile().SetAttribute(step.Key, content)
+	case parentNode.AsBlock() != nil:
+		parentNode.AsBlock().SetAttribute(step.Key, content)
+	case parentNode.AsObject() != nil:
+		parentNode.AsObject().SetItem(step.Key, content)
+	default:
+		onErr(b.ef, fmt.Errorf("cannot set %q: parent is not a block or object body", addr))
+	}
+
+	return b
+}
+
+// AppendBlockAt appends a block to the body at addr. An empty address appends
+// the block to the root file body.
+func (b *FileBuilder) AppendBlockAt(addr, content string) *FileBuilder {
+	parentNode, err := atAddress(b.file, addr, b.ef)
+	if onErr(b.ef, err) {
+		return b
+	}
+
+	switch {
+	case parentNode.AsFile() != nil:
+		parentNode.AsFile().AppendBlock(content)
+	case parentNode.AsBlock() != nil:
+		parentNode.AsBlock().AppendBlock(content)
+	default:
+		onErr(b.ef, fmt.Errorf("cannot append a block at %q: not a file or block body", addr))
+	}
 	return b
 }
 

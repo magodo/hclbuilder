@@ -14,59 +14,70 @@ type Node interface {
 	BuildTokens(to hclwrite.Tokens) hclwrite.Tokens
 }
 
-type NodeBuilder interface {
+type Builder interface {
+	AsFile() *FileBuilder
 	AsBlock() *BlockBuilder
 	AsObject() *ObjectBuilder
 	AsTuple() *TupleBuilder
 }
 
-type Builder struct {
+type FileBuilder struct {
 	file *hclwrite.File
 	body bodyOperator
 
 	ef ErrorFunc
 }
 
-// New creates a Builder with the input content.
+func newFileBuilder(file *hclwrite.File, ef ErrorFunc) *FileBuilder {
+	return &FileBuilder{
+		file: file,
+		body: bodyOperator{
+			body: file.Body(),
+			ef:   ef,
+		},
+		ef: ef,
+	}
+}
+
+var _ Builder = &FileBuilder{}
+
+// New creates a FileBuilder with the input content.
 // Any build operation that failed will cause a panic by default, which can be
 // changed by setting a custom error function via WithErrorFunc option.
-func New(src []byte, opts ...Option) *Builder {
-	b := &Builder{
+func New(src []byte, opts ...Option) *FileBuilder {
+	// Construct a tmp FileBuilder mainly to apply the options.
+	// It will be replaced by another new FileBuilder constructed below.
+	tmp := &FileBuilder{
 		ef: func(err error) { panic(err.Error()) },
 	}
 	for _, opt := range opts {
-		opt(b)
+		opt(tmp)
 	}
 
 	file := hclwrite.NewEmptyFile()
 	if len(src) != 0 {
 		var diags hcl.Diagnostics
 		file, diags = hclwrite.ParseConfig(src, "", hcl.InitialPos)
-		if onDiags(b.ef, diags) {
+		if onDiags(tmp.ef, diags) {
 			return nil
 		}
 	}
 
-	b.file = file
-	b.body = bodyOperator{
-		body: file.Body(),
-		ef:   b.ef,
-	}
-	return b
+	return newFileBuilder(file, tmp.ef)
 }
 
 // Build turns the HCL built so far into formatted bytes.
-func (b Builder) Build() []byte {
+func (b FileBuilder) Build() []byte {
 	return hclwrite.Format(b.file.Bytes())
 }
 
 // BuildString is similar to Build, but returns string.
-func (b Builder) BuildString() string {
+func (b FileBuilder) BuildString() string {
 	return string(b.Build())
 }
 
 // Clone returns a new cloned FileBuilder.
-func (b Builder) Clone() *Builder {
+func (b FileBuilder) Clone() *FileBuilder {
 	bb := New(b.Build())
 	bb.ef = b.ef
 	return bb
@@ -82,7 +93,7 @@ func (b Builder) Clone() *Builder {
 //
 // Example: With addr [resource.azurerm_resource_group.test].tags, a ObjectBuilder is called
 // with the build function.
-func (b *Builder) At(addr string, f func(NodeBuilder)) *Builder {
+func (b *FileBuilder) At(addr string, f func(Builder)) *FileBuilder {
 	bb, err := atAddress(b.file, addr, b.ef)
 	if onErr(b.ef, err) {
 		return b
@@ -91,23 +102,23 @@ func (b *Builder) At(addr string, f func(NodeBuilder)) *Builder {
 	return b
 }
 
-func (b *Builder) SetAttribute(name string, content string) *Builder {
+func (b *FileBuilder) SetAttribute(name string, content string) *FileBuilder {
 	onDiags(b.ef, b.body.SetAttribute(name, []byte(content)))
 	return b
 }
 
-func (b *Builder) RenameAttribute(fromName, toName string) *Builder {
+func (b *FileBuilder) RenameAttribute(fromName, toName string) *FileBuilder {
 	onBool(b.ef, b.body.RenameAttribute(fromName, toName), fmt.Sprintf("RenameAttribute for %s failed", fromName))
 	return b
 }
 
-func (b *Builder) RemoveAttribute(name string) *Builder {
+func (b *FileBuilder) RemoveAttribute(name string) *FileBuilder {
 	onBool(b.ef, b.body.RemoveAttribute(name), fmt.Sprintf("RemoveAttribute for %s failed", name))
 	return b
 }
 
 // AppendBlock appends a block to the end of the body in verbatim.
-func (b *Builder) AppendBlock(content string) *Builder {
+func (b *FileBuilder) AppendBlock(content string) *FileBuilder {
 	onDiags(b.ef, b.body.AppendBlock([]byte(content)))
 	return b
 }
@@ -115,7 +126,7 @@ func (b *Builder) AppendBlock(content string) *Builder {
 // AppendNewBlock appends a new nested block to the end of the receiving body
 // with the given type name and labels. Then callback the function with a newly
 // constructed FileBuilder for this appended block.
-func (b *Builder) AppendNewBlock(typeName string, labels []string, f func(*BlockBuilder)) *Builder {
+func (b *FileBuilder) AppendNewBlock(typeName string, labels []string, f func(*BlockBuilder)) *FileBuilder {
 	b.body.AppendNewBlock(typeName, labels, f)
 	return b
 }
@@ -123,9 +134,25 @@ func (b *Builder) AppendNewBlock(typeName string, labels []string, f func(*Block
 // RemoveBlocks removes the blocks with certain type and labels.
 // If indicies is not nil, only the blocks under the specified indicies are removed.
 // Otherwise, all matching blocks are removed.
-func (b *Builder) RemoveBlocks(typeName string, labels []string, indicies []int) *Builder {
+func (b *FileBuilder) RemoveBlocks(typeName string, labels []string, indicies []int) *FileBuilder {
 	onErr(b.ef, b.body.RemoveBlocks(typeName, labels, indicies))
 	return b
+}
+
+func (b *FileBuilder) AsBlock() *BlockBuilder {
+	return nil
+}
+
+func (b *FileBuilder) AsFile() *FileBuilder {
+	return b
+}
+
+func (b *FileBuilder) AsObject() *ObjectBuilder {
+	return nil
+}
+
+func (b *FileBuilder) AsTuple() *TupleBuilder {
+	return nil
 }
 
 type BlockBuilder struct {
@@ -135,7 +162,7 @@ type BlockBuilder struct {
 	ef ErrorFunc
 }
 
-func NewBlockBuilder(blk *hclwrite.Block, ef ErrorFunc) *BlockBuilder {
+func newBlockBuilder(blk *hclwrite.Block, ef ErrorFunc) *BlockBuilder {
 	return &BlockBuilder{
 		blk:  blk,
 		body: bodyOperator{body: blk.Body(), ef: ef},
@@ -144,7 +171,7 @@ func NewBlockBuilder(blk *hclwrite.Block, ef ErrorFunc) *BlockBuilder {
 	}
 }
 
-var _ NodeBuilder = &BlockBuilder{}
+var _ Builder = &BlockBuilder{}
 
 func (b *BlockBuilder) SetType(typeName string) *BlockBuilder {
 	b.blk.SetType(typeName)
@@ -156,7 +183,7 @@ func (b *BlockBuilder) SetLabels(labels []string) *BlockBuilder {
 	return b
 }
 
-func (b *BlockBuilder) At(addr string, f func(NodeBuilder)) *BlockBuilder {
+func (b *BlockBuilder) At(addr string, f func(Builder)) *BlockBuilder {
 	bb, err := atAddress(b.blk, addr, b.ef)
 	if onErr(b.ef, err) {
 		return b
@@ -206,6 +233,10 @@ func (b *BlockBuilder) AsBlock() *BlockBuilder {
 	return b
 }
 
+func (b *BlockBuilder) AsFile() *FileBuilder {
+	return nil
+}
+
 func (b *BlockBuilder) AsObject() *ObjectBuilder {
 	return nil
 }
@@ -220,13 +251,13 @@ type ObjectBuilder struct {
 	ef ErrorFunc
 }
 
-func NewObjectBuilder(obj *hclwrite.ObjectConsExpr, ef ErrorFunc) *ObjectBuilder {
+func newObjectBuilder(obj *hclwrite.ObjectConsExpr, ef ErrorFunc) *ObjectBuilder {
 	return &ObjectBuilder{obj: obj, ef: ef}
 }
 
-var _ NodeBuilder = &ObjectBuilder{}
+var _ Builder = &ObjectBuilder{}
 
-func (b *ObjectBuilder) At(addr string, f func(NodeBuilder)) *ObjectBuilder {
+func (b *ObjectBuilder) At(addr string, f func(Builder)) *ObjectBuilder {
 	bb, err := atAddress(b.obj, addr, b.ef)
 	if onErr(b.ef, err) {
 		return b
@@ -253,6 +284,10 @@ func (b *ObjectBuilder) AsBlock() *BlockBuilder {
 	return nil
 }
 
+func (b *ObjectBuilder) AsFile() *FileBuilder {
+	return nil
+}
+
 func (b *ObjectBuilder) AsObject() *ObjectBuilder {
 	return b
 }
@@ -267,13 +302,17 @@ type TupleBuilder struct {
 	ef ErrorFunc
 }
 
-func NewTupleBuilder(tuple *hclwrite.TupleConsExpr, ef ErrorFunc) *TupleBuilder {
+func newTupleBuilder(tuple *hclwrite.TupleConsExpr, ef ErrorFunc) *TupleBuilder {
 	return &TupleBuilder{tuple: tuple, ef: ef}
 }
 
-var _ NodeBuilder = &TupleBuilder{}
+var _ Builder = &TupleBuilder{}
 
 func (t *TupleBuilder) AsBlock() *BlockBuilder {
+	return nil
+}
+
+func (b *TupleBuilder) AsFile() *FileBuilder {
 	return nil
 }
 
@@ -337,7 +376,7 @@ func (b bodyOperator) AppendBlock(src []byte) hcl.Diagnostics {
 
 func (b bodyOperator) AppendNewBlock(typeName string, labels []string, f func(*BlockBuilder)) {
 	innerBlk := b.body.AppendNewBlock(typeName, labels)
-	f(NewBlockBuilder(innerBlk, b.ef))
+	f(newBlockBuilder(innerBlk, b.ef))
 }
 
 func (b bodyOperator) RemoveBlocks(typeName string, labels []string, indicies []int) error {
@@ -356,7 +395,7 @@ func (b bodyOperator) RemoveBlocks(typeName string, labels []string, indicies []
 	return nil
 }
 
-func atAddress(start Node, address string, ef ErrorFunc) (NodeBuilder, error) {
+func atAddress(start Node, address string, ef ErrorFunc) (Builder, error) {
 	addr, err := ParseAddress(address)
 	if err != nil {
 		return nil, err
@@ -371,12 +410,14 @@ func atAddress(start Node, address string, ef ErrorFunc) (NodeBuilder, error) {
 	}
 
 	switch node := node.(type) {
+	case *hclwrite.File:
+		return newFileBuilder(node, ef), nil
 	case *hclwrite.Block:
-		return NewBlockBuilder(node, ef), nil
+		return newBlockBuilder(node, ef), nil
 	case *hclwrite.ObjectConsExpr:
-		return NewObjectBuilder(node, ef), nil
+		return newObjectBuilder(node, ef), nil
 	case *hclwrite.TupleConsExpr:
-		return NewTupleBuilder(node, ef), nil
+		return newTupleBuilder(node, ef), nil
 	default:
 		return nil, fmt.Errorf("unexpected node type %T", node)
 	}

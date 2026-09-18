@@ -51,11 +51,11 @@ bar "a" "b" {
 	)
 	b.RenameAttribute("string", "foo").
 		RemoveAttribute("object").
-		At("objects.1", func(b hclbuilder.NodeBuilder) {
+		At("objects.1", func(b hclbuilder.Builder) {
 			b.AsObject().
 				SetItem("y", "2")
 		}).
-		At("[foo]", func(b hclbuilder.NodeBuilder) {
+		At("[foo]", func(b hclbuilder.Builder) {
 			b.AsBlock().
 				RemoveAttribute("hello").
 				SetAttribute("q", `{foo="bar"}`).
@@ -71,13 +71,16 @@ bar "a" "b" {
 		}).
 		RemoveBlocks("empty", []string{"a"}, []int{0}).
 		RemoveBlocks("empty2", nil, nil).
-		At("[bar.a.b].[baz].object.nest", func(b hclbuilder.NodeBuilder) {
+		At("[bar.a.b].[baz].object.nest", func(b hclbuilder.Builder) {
 			b.AsObject().
 				SetItem("a", "2").
 				SetItem("b", `"hello"`).
 				RemoveItem("x")
 		}).
-		SetAttribute("bar", `"bar"`)
+		SetAttribute("bar", `"bar"`).
+		At("", func(b hclbuilder.Builder) {
+			b.AsFile().SetAttribute("root", "1")
+		})
 	fmt.Println(string(b.Build()))
 	// Output:
 	// foo = "foo"
@@ -116,5 +119,6 @@ bar "a" "b" {
 	//     }
 	//   }
 	// }
-	// bar = "bar"
+	// bar  = "bar"
+	// root = 1
 }

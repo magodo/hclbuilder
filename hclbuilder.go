@@ -147,16 +147,13 @@ func (b *FileBuilder) RemoveBlocks(typeName string, labels []string, indicies []
 	return b
 }
 
-// SetAt sets the raw content to where the address points to.
-// The caller is responsible to ensure the content being set is valid at the address.
-// E.g. Setting a block to an attribute path will cause an error.
-func (b *FileBuilder) SetAt(addr, content string) *FileBuilder {
+// SetExpressionAt sets the raw content of an expression to where the address points to.
+func (b *FileBuilder) SetExpressionAt(addr, content string) *FileBuilder {
 	parentNode, last, err := b.resolveParent(addr)
 	if onErr(b.ef, err) {
 		return b
 	}
 
-	// TODO: Support IndexStep once TupleConsExpr can set/insert item.
 	step, ok := last.(internal.KeyStep)
 	if !ok {
 		onErr(b.ef, fmt.Errorf("cannot set %q: address is not pointing to an attribute or object", addr))
@@ -177,8 +174,8 @@ func (b *FileBuilder) SetAt(addr, content string) *FileBuilder {
 	return b
 }
 
-// AppendBlockAt appends a block to the body at addr. An empty address appends
-// the block to the root file body.
+// AppendBlockAt appends the raw content of a block to the body at addr.
+// An empty address appends the block to the root file body.
 func (b *FileBuilder) AppendBlockAt(addr, content string) *FileBuilder {
 	parentNode, err := atAddress(b.file, addr, b.ef)
 	if onErr(b.ef, err) {

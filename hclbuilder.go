@@ -147,6 +147,91 @@ func (b *FileBuilder) RemoveBlocks(typeName string, labels []string, indicies []
 	return b
 }
 
+// SetExpressionAt sets the raw content of an expression to where the address points to.
+func (b *FileBuilder) SetExpressionAt(addr, content string) *FileBuilder {
+	parentNode, last, err := b.resolveParent(addr)
+	if onErr(b.ef, err) {
+		return b
+	}
+
+	step, ok := last.(internal.KeyStep)
+	if !ok {
+		onErr(b.ef, fmt.Errorf("cannot set %q: address is not pointing to an attribute or object", addr))
+		return b
+	}
+
+	switch {
+	case parentNode.AsFile() != nil:
+		parentNode.AsFile().SetAttribute(step.Key, content)
+	case parentNode.AsBlock() != nil:
+		parentNode.AsBlock().SetAttribute(step.Key, content)
+	case parentNode.AsObject() != nil:
+		parentNode.AsObject().SetItem(step.Key, content)
+	default:
+		onErr(b.ef, fmt.Errorf("cannot set %q: parent is not a block or object body", addr))
+	}
+
+	return b
+}
+
+// AppendBlockAt appends the raw content of a block to the body at addr.
+// An empty address appends the block to the root file body.
+func (b *FileBuilder) AppendBlockAt(addr, content string) *FileBuilder {
+	parentNode, err := atAddress(b.file, addr, b.ef)
+	if onErr(b.ef, err) {
+		return b
+	}
+
+	switch {
+	case parentNode.AsFile() != nil:
+		parentNode.AsFile().AppendBlock(content)
+	case parentNode.AsBlock() != nil:
+		parentNode.AsBlock().AppendBlock(content)
+	default:
+		onErr(b.ef, fmt.Errorf("cannot append a block at %q: not a file or block body", addr))
+	}
+	return b
+}
+
+// RemoveAt removes the node where the address points to.
+func (b *FileBuilder) RemoveAt(addr string) *FileBuilder {
+	parentNode, last, err := b.resolveParent(addr)
+	if onErr(b.ef, err) {
+		return b
+	}
+
+	// TODO: Support IndexStep once TupleConsExpr can remove item.
+	switch step := last.(type) {
+	case internal.KeyStep:
+		switch {
+		case parentNode.AsFile() != nil:
+			parentNode.AsFile().RemoveAttribute(step.Key)
+		case parentNode.AsBlock() != nil:
+			parentNode.AsBlock().RemoveAttribute(step.Key)
+		case parentNode.AsObject() != nil:
+			parentNode.AsObject().RemoveItem(step.Key)
+		default:
+			onErr(b.ef, fmt.Errorf("cannot remove %q: parent is not a file, block or object", addr))
+		}
+	case internal.BlockStep:
+		idx := []int{0}
+		if step.Idx != nil {
+			idx = []int{*step.Idx}
+		}
+		switch {
+		case parentNode.AsFile() != nil:
+			parentNode.AsFile().RemoveBlocks(step.Type, step.Labels, idx)
+		case parentNode.AsBlock() != nil:
+			parentNode.AsBlock().RemoveBlocks(step.Type, step.Labels, idx)
+		default:
+			onErr(b.ef, fmt.Errorf("cannot remove a block at %q: parent is not a file or block", addr))
+		}
+	default:
+		onErr(b.ef, fmt.Errorf("unsupported final step %q", last))
+	}
+	return b
+}
+
 // AsBlock returns nil.
 func (b *FileBuilder) AsBlock() *BlockBuilder {
 	return nil
@@ -165,6 +250,20 @@ func (b *FileBuilder) AsObject() *ObjectBuilder {
 // AsTuple returns nil.
 func (b *FileBuilder) AsTuple() *TupleBuilder {
 	return nil
+}
+
+// resolveParent resolves the parent node, with the last address step.
+func (b *FileBuilder) resolveParent(addr string) (parentNode Builder, last internal.Step, err error) {
+	address, err := internal.ParseAddress(addr)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(address) == 0 {
+		return nil, nil, fmt.Errorf("empty address is not allowed")
+	}
+	parent, last := address[:len(address)-1], address[len(address)-1]
+	parentNode, err = atAddress(b.file, parent.String(), b.ef)
+	return parentNode, last, err
 }
 
 // BlockBuilder builds and modifies an HCL block.

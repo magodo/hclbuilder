@@ -33,22 +33,111 @@ github.com/magodo/hclbuilder
 
 <!--
 Open with the central idea: tests should say what changed, not repeat everything
-that stayed the same.
+that stayed the same. 
+
+// Considering other two teams might not be familiar with the HCL, give some background. 
+
+HCL is the HashiCorp configuration language used for Terraform. It is like YAML for ADO pipeline. Each time we deploy Azure Resource with Terraform, we need to write or modify HCL script. This means we need to write a lot of hcl script when we are writing test Terraform provider. 
+
+They are long and repetitive sometimes. The development process usually invovled a lot of copy paste, which increase the difficulty for maintaining these tests. 
+
+Ideally we would like the "tests should say what changed, not repeat everything
+that stayed the same. " 
+
+So, the major goal of this tool is to improve this part of Terraform development experience.
 -->
 
 ---
-layout: statement
+layout: center
 ---
 
-# Configuration is usually read as a whole.
+# The acceptance-test problem
 
-<div v-click class="mt-10 text-3xl opacity-80">
-Tests often need to express it as a <span class="text-amber-300">sequence of changes</span>.
+<div v-click>
+
+An example of the test 
+
+```go
+func TestAccExampleResource_update(t *testing.T) {
+	data := data := acceptance.BuildTestData()
+	r := ExampleResource{}
+
+	data.ResourceTest(t, r, []acceptance.TestStep{
+		{
+			Config: r.basic(data),
+			Check: acceptance.ComposeTestCheckFunc(
+				check.That(data.ResourceName).ExistsInAzure(r),
+			),
+		},
+		data.ImportStep("admin_password"),
+		{
+			Config: r.update(data),
+			Check: acceptance.ComposeTestCheckFunc(
+				check.That(data.ResourceName).ExistsInAzure(r),
+			),
+		},
+		data.ImportStep("admin_password"),
+	})
+}
+
+```
+
 </div>
 
 <!--
-HCL is declarative, but a multi-step acceptance test has a timeline. That
-mismatch is the problem hclbuilder addresses.
+To understand the project, we first need to look at the everyday question we are facing. 
+
+// Listener might understand the issue better when they look at the actual example
+// Describe the example test how vague it is.
+-->
+
+---
+layout: two-cols-header
+layoutClass: gap-6
+---
+
+# The acceptance-test problem
+
+Please compare the tests scripts below and find what actually changed
+
+::left::
+
+<div v-click class="snippet">
+
+<<< @/snippets/test_basic.go go
+
+</div>
+
+::right::
+
+<div v-click class="snippet">
+
+<<< @/snippets/test_update.go go
+
+</div>
+
+<style>
+  .snippet .slidev-code {
+  font-size: 0.5rem !important;        
+  line-height: 1.2 !important;
+  white-space: pre-wrap !important;   
+  overflow-wrap: anywhere !important;  
+  word-break: break-word !important;
+  max-width: 100% !important;       
+  overflow-x: hidden !important;    
+  margin-top: -2rem !important;  
+}
+.snippet .slidev-code .line {
+  white-space: pre-wrap !important;  
+}
+</style>
+
+<!--
+Visually showing what the acceptance-test issue is
+Challenge everyone to find the differences between left and right
+
+1. Hard to find which part changes
+2. Heavy in the codebase
 -->
 
 ---
@@ -103,6 +192,12 @@ What did each step actually change?
 <!--
 Two common approaches: duplicate configuration functions, or one highly
 parameterized function. Both force the reader to reconstruct the diff.
+
+Idea: tests should say what changed, not repeat everything that stayed the same. 
+
+So our project is to
+1. make the changes visible
+2. remove the repetitive copy paste.
 -->
 
 ---
@@ -376,6 +471,10 @@ builder.
 
 </div>
 
+<!--
+// suitable to use if you just want to change a single field
+-->
+
 ---
 layout: two-cols
 layoutClass: gap-10
@@ -418,6 +517,10 @@ The direct and callback styles are complementary—and can be mixed on one build
 </div>
 
 </div>
+
+<!--
+// Suitable to use when you want to change multiple fields inside block/object
+-->
 
 ---
 layout: center
@@ -510,6 +613,10 @@ name = "after"
 </div>
 
 </div>
+
+<!--
+// demo here
+-->
 
 ---
 layout: center

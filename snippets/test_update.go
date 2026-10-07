@@ -11,7 +11,6 @@ resource "example_resource" "test" {
   zones                           = ["3"]
   single_placement_group          = false
   capacity_reservation_group_id   = azurerm_capacity_reservation_group.test2.id
-  disable_password_authentication = false
   platform_fault_domain_count     = 1
 
   source_image_reference {

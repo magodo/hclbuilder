@@ -119,16 +119,9 @@ Please compare the tests scripts below and find what actually changed
 <style>
   .snippet .slidev-code {
   font-size: 0.5rem !important;        
-  line-height: 1.2 !important;
+  line-height: 1 !important;
   white-space: pre-wrap !important;   
-  overflow-wrap: anywhere !important;  
-  word-break: break-word !important;
-  max-width: 100% !important;       
-  overflow-x: hidden !important;    
   margin-top: -2rem !important;  
-}
-.snippet .slidev-code .line {
-  white-space: pre-wrap !important;  
 }
 </style>
 
@@ -151,7 +144,7 @@ Terraform provider acceptance tests require every `TestStep` to receive a **comp
 
 But adjacent steps may change only one or two fields.
 
-<div v-click class="mt-8 p-4 rounded bg-red-500:10 border border-red-400:25">
+<div class="mt-8 p-4 rounded bg-red-500:10 border border-red-400:25">
 
 **The test's intent gets buried:**
 
@@ -173,7 +166,7 @@ Steps: []resource.TestStep{
 }
 ```
 
-<div v-click class="text-center my-5 opacity-55">or</div>
+<div class="text-center my-5 opacity-55">or</div>
 
 ```go
 Steps: []resource.TestStep{
@@ -212,15 +205,15 @@ class: text-center
     base HCL
   </div>
   <div class="text-3xl opacity-45">→</div>
-  <div v-click class="px-6 py-4 rounded-xl bg-violet-500:15 border border-violet-400:30">
+  <div class="px-6 py-4 rounded-xl bg-violet-500:15 border border-violet-400:30">
     `Clone()`
   </div>
-  <div v-click class="text-3xl opacity-45">→</div>
-  <div v-click class="px-6 py-4 rounded-xl bg-amber-500:15 border border-amber-400:30">
+  <div class="text-3xl opacity-45">→</div>
+  <div class="px-6 py-4 rounded-xl bg-amber-500:15 border border-amber-400:30">
     targeted edits
   </div>
-  <div v-click class="text-3xl opacity-45">→</div>
-  <div v-click class="px-6 py-4 rounded-xl bg-emerald-500:15 border border-emerald-400:30">
+  <div class="text-3xl opacity-45">→</div>
+  <div class="px-6 py-4 rounded-xl bg-emerald-500:15 border border-emerald-400:30">
     formatted HCL
   </div>
 </div>
@@ -299,7 +292,7 @@ resource.Test(t, resource.TestCase{
 })
 ```
 
-<div v-click class="mt-8 text-sm opacity-65">
+<div class="mt-8 text-sm opacity-65">
 `Build()` returns formatted `[]byte`.<br>
 `BuildString()` returns the same result as a `string`.
 </div>
@@ -346,17 +339,17 @@ resource "server" "web" {        # [resource.server.web]
 
 <div class="space-y-4 mt-2">
 
-<div v-click class="p-3 rounded bg-sky-500:10 border border-sky-400:25">
+<div class="p-3 rounded bg-sky-500:10 border border-sky-400:25">
 <div class="font-mono text-sm text-sky-300">[resource.server.web].size</div>
 <div class="text-sm opacity-65 mt-1">an attribute in a labeled block</div>
 </div>
 
-<div v-click class="p-3 rounded bg-violet-500:10 border border-violet-400:25">
+<div class="p-3 rounded bg-violet-500:10 border border-violet-400:25">
 <div class="font-mono text-sm text-violet-300">[resource.server.web].metadata.owner</div>
 <div class="text-sm opacity-65 mt-1">an item in a nested object</div>
 </div>
 
-<div v-click class="p-3 rounded bg-amber-500:10 border border-amber-400:25">
+<div class="p-3 rounded bg-amber-500:10 border border-amber-400:25">
 <div class="font-mono text-sm text-amber-300">[resource.server.web].[disk].mount</div>
 <div class="text-sm opacity-65 mt-1">an attribute in a nested block</div>
 </div>
@@ -534,22 +527,22 @@ layout: center
     <div class="text-xs opacity-55 mt-1">`[]byte`</div>
   </div>
   <div class="opacity-40 text-2xl">→</div>
-  <div v-click class="px-5 py-4 rounded-xl bg-violet-500:12 border border-violet-400:25 text-center">
+  <div class="px-5 py-4 rounded-xl bg-violet-500:12 border border-violet-400:25 text-center">
     <div>parse</div>
     <div class="text-xs opacity-55 mt-1">`hclwrite`</div>
   </div>
-  <div v-click class="opacity-40 text-2xl">→</div>
-  <div v-click class="px-5 py-4 rounded-xl bg-amber-500:12 border border-amber-400:25 text-center">
+  <div class="opacity-40 text-2xl">→</div>
+  <div class="px-5 py-4 rounded-xl bg-amber-500:12 border border-amber-400:25 text-center">
     <div>resolve address</div>
     <div class="text-xs opacity-55 mt-1">file / block / object / tuple</div>
   </div>
-  <div v-click class="opacity-40 text-2xl">→</div>
-  <div v-click class="px-5 py-4 rounded-xl bg-pink-500:12 border border-pink-400:25 text-center">
+  <div class="opacity-40 text-2xl">→</div>
+  <div class="px-5 py-4 rounded-xl bg-pink-500:12 border border-pink-400:25 text-center">
     <div>mutate node</div>
     <div class="text-xs opacity-55 mt-1">parsed expressions & blocks</div>
   </div>
-  <div v-click class="opacity-40 text-2xl">→</div>
-  <div v-click class="px-5 py-4 rounded-xl bg-emerald-500:12 border border-emerald-400:25 text-center">
+  <div class="opacity-40 text-2xl">→</div>
+  <div class="px-5 py-4 rounded-xl bg-emerald-500:12 border border-emerald-400:25 text-center">
     <div>format</div>
     <div class="text-xs opacity-55 mt-1">complete HCL</div>
   </div>

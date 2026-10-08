@@ -39,9 +39,9 @@ that stayed the same.
 
 HCL is the HashiCorp configuration language used for Terraform. It is like YAML for ADO pipeline. Each time we deploy Azure Resource with Terraform, we need to write or modify HCL script. This means we need to write a lot of hcl script when we are writing test Terraform provider. 
 
-They are long and repetitive sometimes. The development process usually invovled a lot of copy paste, which increase the difficulty for maintaining these tests. 
+They are long and repetitive sometimes. The development process usually involved a lot of copy paste, which increase the difficulty for maintaining these tests. 
 
-Ideally we would like the "tests should say what changed, not repeat everything
+Ideally, we would like the "tests should say what changed, not repeat everything
 that stayed the same. " 
 
 So, the major goal of this tool is to improve this part of Terraform development experience.
@@ -89,6 +89,7 @@ To understand the project, we first need to look at the everyday question we are
 
 // Listener might understand the issue better when they look at the actual example
 // Describe the example test how vague it is.
+// It's hard to know what properties got updated, so naturally we would like to see the actual basic/update function => going into next slides.
 -->
 
 ---
@@ -186,9 +187,7 @@ What did each step actually change?
 Two common approaches: duplicate configuration functions, or one highly
 parameterized function. Both force the reader to reconstruct the diff.
 
-Idea: tests should say what changed, not repeat everything that stayed the same. 
-
-So our project is to
+So, our project is to
 1. make the changes visible
 2. remove the repetitive copy paste.
 -->
@@ -221,6 +220,10 @@ class: text-center
 <div v-click class="mt-14 text-2xl opacity-80">
 The source code becomes a readable history of the configuration.
 </div>
+
+<!--
+To make the changes visible, we created this package to allow users makes targeted edits on a base template.
+-->
 
 ---
 layout: two-cols
@@ -312,6 +315,10 @@ resource.Test(t, resource.TestCase{
 <div v-click class="mt-10 text-xl text-emerald-300">
 No string diff required to understand the scenario.
 </div>
+
+<!--
+It’s similar to software versioning. Users can clone the HCL, keep a specific version of the scripts, and use it independently.
+-->
 
 ---
 
@@ -555,6 +562,8 @@ Edits target syntax nodes; output is normalized by the HCL formatter.
 <!--
 Expressions supplied to setters are parsed as HCL expressions. Blocks supplied
 to append operations are parsed and validated as exactly one block.
+
+// all input and path are parsed/validated/formatted, so easier to find error.
 -->
 
 ---

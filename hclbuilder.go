@@ -612,7 +612,7 @@ func atStep(node Node, step internal.Step) (Node, error) {
 			if item == nil {
 				return nil, fmt.Errorf("node not found at step %q", step)
 			}
-			return underlyingExpr(item.ValueObj().Expr())
+			return underlyingExpr(item.ValueExpr().Expr())
 		default:
 			return nil, fmt.Errorf("invalid starting node (%T) for key step %q", node, step)
 		}

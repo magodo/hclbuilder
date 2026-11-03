@@ -33,105 +33,22 @@ github.com/magodo/hclbuilder
 
 <!--
 Open with the central idea: tests should say what changed, not repeat everything
-that stayed the same. 
-
-// Considering other two teams might not be familiar with the HCL, give some background. 
-
-HCL is the HashiCorp configuration language used for Terraform. It is like YAML for ADO pipeline. Each time we deploy Azure Resource with Terraform, we need to write or modify HCL script. This means we need to write a lot of hcl script when we are writing test Terraform provider. 
-
-They are long and repetitive sometimes. The development process usually involved a lot of copy paste, which increase the difficulty for maintaining these tests. 
-
-Ideally, we would like the "tests should say what changed, not repeat everything
-that stayed the same. " 
-
-So, the major goal of this tool is to improve this part of Terraform development experience.
+that stayed the same.
 -->
 
 ---
-layout: center
+layout: statement
 ---
 
-# The acceptance-test problem
+# Configuration is usually read as a whole.
 
-<div v-click>
-
-An example of the test 
-
-```go
-func TestAccExampleResource_update(t *testing.T) {
-	data := data := acceptance.BuildTestData()
-	r := ExampleResource{}
-
-	data.ResourceTest(t, r, []acceptance.TestStep{
-		{
-			Config: r.basic(data),
-			Check: acceptance.ComposeTestCheckFunc(
-				check.That(data.ResourceName).ExistsInAzure(r),
-			),
-		},
-		data.ImportStep("admin_password"),
-		{
-			Config: r.update(data),
-			Check: acceptance.ComposeTestCheckFunc(
-				check.That(data.ResourceName).ExistsInAzure(r),
-			),
-		},
-		data.ImportStep("admin_password"),
-	})
-}
-
-```
-
+<div v-click class="mt-10 text-3xl opacity-80">
+Tests often need to express it as a <span class="text-amber-300">sequence of changes</span>.
 </div>
 
 <!--
-To understand the project, we first need to look at the everyday question we are facing. 
-
-// Listener might understand the issue better when they look at the actual example
-// Describe the example test how vague it is.
-// It's hard to know what properties got updated, so naturally we would like to see the actual basic/update function => going into next slides.
--->
-
----
-layout: two-cols-header
-layoutClass: gap-6
----
-
-# The acceptance-test problem
-
-Please compare the tests scripts below and find what actually changed
-
-::left::
-
-<div v-click class="snippet">
-
-<<< @/snippets/test_basic.go go
-
-</div>
-
-::right::
-
-<div v-click class="snippet">
-
-<<< @/snippets/test_update.go go
-
-</div>
-
-<style>
-  .snippet .slidev-code {
-  font-size: 0.5rem !important;        
-  line-height: 1 !important;
-  white-space: pre-wrap !important;   
-  margin-top: -2rem !important;  
-}
-</style>
-
-<!--
-Visually showing what the acceptance-test issue is
-Challenge everyone to find the differences between left and right
-
-1. Hard to find which part changes
-2. Heavy in the codebase
+HCL is declarative, but a multi-step acceptance test has a timeline. That
+mismatch is the problem hclbuilder addresses.
 -->
 
 ---
@@ -145,7 +62,7 @@ Terraform provider acceptance tests require every `TestStep` to receive a **comp
 
 But adjacent steps may change only one or two fields.
 
-<div class="mt-8 p-4 rounded bg-red-500:10 border border-red-400:25">
+<div v-click class="mt-8 p-4 rounded bg-red-500:10 border border-red-400:25">
 
 **The test's intent gets buried:**
 
@@ -167,7 +84,7 @@ Steps: []resource.TestStep{
 }
 ```
 
-<div class="text-center my-5 opacity-55">or</div>
+<div v-click class="text-center my-5 opacity-55">or</div>
 
 ```go
 Steps: []resource.TestStep{
@@ -186,10 +103,6 @@ What did each step actually change?
 <!--
 Two common approaches: duplicate configuration functions, or one highly
 parameterized function. Both force the reader to reconstruct the diff.
-
-So, our project is to
-1. make the changes visible
-2. remove the repetitive copy paste.
 -->
 
 ---
@@ -204,15 +117,15 @@ class: text-center
     base HCL
   </div>
   <div class="text-3xl opacity-45">→</div>
-  <div class="px-6 py-4 rounded-xl bg-violet-500:15 border border-violet-400:30">
+  <div v-click class="px-6 py-4 rounded-xl bg-violet-500:15 border border-violet-400:30">
     `Clone()`
   </div>
-  <div class="text-3xl opacity-45">→</div>
-  <div class="px-6 py-4 rounded-xl bg-amber-500:15 border border-amber-400:30">
+  <div v-click class="text-3xl opacity-45">→</div>
+  <div v-click class="px-6 py-4 rounded-xl bg-amber-500:15 border border-amber-400:30">
     targeted edits
   </div>
-  <div class="text-3xl opacity-45">→</div>
-  <div class="px-6 py-4 rounded-xl bg-emerald-500:15 border border-emerald-400:30">
+  <div v-click class="text-3xl opacity-45">→</div>
+  <div v-click class="px-6 py-4 rounded-xl bg-emerald-500:15 border border-emerald-400:30">
     formatted HCL
   </div>
 </div>
@@ -220,10 +133,6 @@ class: text-center
 <div v-click class="mt-14 text-2xl opacity-80">
 The source code becomes a readable history of the configuration.
 </div>
-
-<!--
-To make the changes visible, we created this package to allow users makes targeted edits on a base template.
--->
 
 ---
 layout: two-cols
@@ -295,7 +204,7 @@ resource.Test(t, resource.TestCase{
 })
 ```
 
-<div class="mt-8 text-sm opacity-65">
+<div v-click class="mt-8 text-sm opacity-65">
 `Build()` returns formatted `[]byte`.<br>
 `BuildString()` returns the same result as a `string`.
 </div>
@@ -315,10 +224,6 @@ resource.Test(t, resource.TestCase{
 <div v-click class="mt-10 text-xl text-emerald-300">
 No string diff required to understand the scenario.
 </div>
-
-<!--
-It’s similar to software versioning. Users can clone the HCL, keep a specific version of the scripts, and use it independently.
--->
 
 ---
 
@@ -346,17 +251,17 @@ resource "server" "web" {        # [resource.server.web]
 
 <div class="space-y-4 mt-2">
 
-<div class="p-3 rounded bg-sky-500:10 border border-sky-400:25">
+<div v-click class="p-3 rounded bg-sky-500:10 border border-sky-400:25">
 <div class="font-mono text-sm text-sky-300">[resource.server.web].size</div>
 <div class="text-sm opacity-65 mt-1">an attribute in a labeled block</div>
 </div>
 
-<div class="p-3 rounded bg-violet-500:10 border border-violet-400:25">
+<div v-click class="p-3 rounded bg-violet-500:10 border border-violet-400:25">
 <div class="font-mono text-sm text-violet-300">[resource.server.web].metadata.owner</div>
 <div class="text-sm opacity-65 mt-1">an item in a nested object</div>
 </div>
 
-<div class="p-3 rounded bg-amber-500:10 border border-amber-400:25">
+<div v-click class="p-3 rounded bg-amber-500:10 border border-amber-400:25">
 <div class="font-mono text-sm text-amber-300">[resource.server.web].[disk].mount</div>
 <div class="text-sm opacity-65 mt-1">an attribute in a nested block</div>
 </div>
@@ -471,10 +376,6 @@ builder.
 
 </div>
 
-<!--
-// suitable to use if you just want to change a single field
--->
-
 ---
 layout: two-cols
 layoutClass: gap-10
@@ -518,10 +419,6 @@ The direct and callback styles are complementary—and can be mixed on one build
 
 </div>
 
-<!--
-// Suitable to use when you want to change multiple fields inside block/object
--->
-
 ---
 layout: center
 ---
@@ -534,22 +431,22 @@ layout: center
     <div class="text-xs opacity-55 mt-1">`[]byte`</div>
   </div>
   <div class="opacity-40 text-2xl">→</div>
-  <div class="px-5 py-4 rounded-xl bg-violet-500:12 border border-violet-400:25 text-center">
+  <div v-click class="px-5 py-4 rounded-xl bg-violet-500:12 border border-violet-400:25 text-center">
     <div>parse</div>
     <div class="text-xs opacity-55 mt-1">`hclwrite`</div>
   </div>
-  <div class="opacity-40 text-2xl">→</div>
-  <div class="px-5 py-4 rounded-xl bg-amber-500:12 border border-amber-400:25 text-center">
+  <div v-click class="opacity-40 text-2xl">→</div>
+  <div v-click class="px-5 py-4 rounded-xl bg-amber-500:12 border border-amber-400:25 text-center">
     <div>resolve address</div>
     <div class="text-xs opacity-55 mt-1">file / block / object / tuple</div>
   </div>
-  <div class="opacity-40 text-2xl">→</div>
-  <div class="px-5 py-4 rounded-xl bg-pink-500:12 border border-pink-400:25 text-center">
+  <div v-click class="opacity-40 text-2xl">→</div>
+  <div v-click class="px-5 py-4 rounded-xl bg-pink-500:12 border border-pink-400:25 text-center">
     <div>mutate node</div>
     <div class="text-xs opacity-55 mt-1">parsed expressions & blocks</div>
   </div>
-  <div class="opacity-40 text-2xl">→</div>
-  <div class="px-5 py-4 rounded-xl bg-emerald-500:12 border border-emerald-400:25 text-center">
+  <div v-click class="opacity-40 text-2xl">→</div>
+  <div v-click class="px-5 py-4 rounded-xl bg-emerald-500:12 border border-emerald-400:25 text-center">
     <div>format</div>
     <div class="text-xs opacity-55 mt-1">complete HCL</div>
   </div>
@@ -562,8 +459,6 @@ Edits target syntax nodes; output is normalized by the HCL formatter.
 <!--
 Expressions supplied to setters are parsed as HCL expressions. Blocks supplied
 to append operations are parsed and validated as exactly one block.
-
-// all input and path are parsed/validated/formatted, so easier to find error.
 -->
 
 ---
@@ -615,10 +510,6 @@ name = "after"
 </div>
 
 </div>
-
-<!--
-// demo here
--->
 
 ---
 layout: center
